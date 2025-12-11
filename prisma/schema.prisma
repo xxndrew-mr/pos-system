@@ -1,0 +1,76 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  CASHIER
+}
+
+enum PaymentMethod {
+  CASH
+  QRIS
+  TRANSFER
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  username  String   @unique
+  password  String
+  role      Role     @default(CASHIER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id              String            @id @default(cuid())
+  barcode         String            @unique
+  name            String
+  price           Int
+  costPrice       Int
+  stock           Int
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  TransactionItem TransactionItem[]
+}
+
+// INI MODEL TRANSACTION YANG BENAR (Hanya boleh ada 1)
+model Transaction {
+  id            String            @id @default(cuid())
+  invoiceNo     String            @unique
+  totalAmount   Int
+  paymentMethod PaymentMethod
+  cashReceived  Int?
+  changeAmount  Int?
+  paymentProof  String?           // Kolom baru untuk bukti transfer
+  createdAt     DateTime          @default(now())
+  
+  items         TransactionItem[]
+}
+
+model TransactionItem {
+  id            String      @id @default(cuid())
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  productId     String
+  product       Product     @relation(fields: [productId], references: [id])
+  quantity      Int
+  priceAtTime   Int
+  costAtTime    Int
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  name        String
+  amount      Int
+  description String?
+  date        DateTime @default(now())
+}
