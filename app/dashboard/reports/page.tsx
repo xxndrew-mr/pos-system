@@ -100,11 +100,13 @@ export default function ReportsPage() {
             <p className="text-sm">Periode: {new Date(startDate).toLocaleDateString("id-ID")} s/d {new Date(endDate).toLocaleDateString("id-ID")}</p>
         </div>
 
-        {/* --- [UPDATE BARU] HIGHLIGHT LABA BERSIH --- */}
+        {/* --- [UPDATE] HIGHLIGHT LABA BERSIH (NET PROFIT) --- */}
         <div className="mb-6">
-            <div className="bg-white p-4 rounded shadow border-l-4 border-indigo-500">
-                <h3 className="text-gray-500 text-sm font-bold">LABA BERSIH (NET PROFIT)</h3>
-                <p className="text-xs text-gray-400 mb-1">(Omset - Modal Barang - Pengeluaran)</p>
+            <div className="bg-white p-4 rounded shadow border-l-4 border-indigo-500 flex justify-between items-center">
+                <div>
+                    <h3 className="text-gray-500 text-sm font-bold">LABA BERSIH (NET PROFIT)</h3>
+                    <p className="text-xs text-gray-400 mb-1">(Omset - Modal Barang - Pengeluaran)</p>
+                </div>
                 <div className="text-3xl font-bold text-indigo-700">
                     Rp {summary.netProfit.toLocaleString()}
                 </div>
@@ -116,7 +118,6 @@ export default function ReportsPage() {
             <Card title="Total Omset" value={summary.totalOmset} icon={<DollarSign/>} color="text-blue-600" bg="bg-blue-50" />
             <Card title="Laba Kotor" value={summary.grossProfit} icon={<TrendingUp/>} color="text-emerald-600" bg="bg-emerald-50" sub="Omset - Modal" />
             <Card title="Pengeluaran" value={summary.totalExpense} icon={<TrendingDown/>} color="text-rose-500" bg="bg-rose-50" />
-            {/* Note: Card Laba Bersih yang kecil saya hapus karena sudah ada yang besar di atas */}
         </div>
 
         {/* 2. BREAKDOWN HARIAN (Tabel Analisis) */}
@@ -147,33 +148,54 @@ export default function ReportsPage() {
             </table>
         </div>
 
-        {/* 3. DETAIL TRANSAKSI (Opsional, di print mungkin panjang) */}
+        {/* 3. DETAIL TRANSAKSI & PENGELUARAN */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-1">
-            {/* Transaksi */}
+            
+            {/* [UPDATE] Tabel Transaksi Lengkap */}
             <div className="border rounded-lg overflow-hidden">
                 <div className="bg-slate-50 p-3 border-b font-bold text-xs uppercase text-slate-500">Riwayat Transaksi Terakhir</div>
-                <table className="w-full text-xs text-left">
-                    <tbody>
-                        {transactions.slice(0, 10).map((t: any) => (
-                            <tr key={t.id} className="border-b last:border-0">
-                                <td className="p-3">
-                                    <div className="font-bold">{t.invoiceNo}</div>
-                                    <div className="text-slate-400">{new Date(t.createdAt).toLocaleTimeString()}</div>
-                                </td>
-                                <td className="p-3 text-right font-medium">Rp {t.totalAmount.toLocaleString()}</td>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left">
+                        <thead className="bg-slate-50 text-slate-400 border-b">
+                            <tr>
+                                <th className="p-3">Invoice</th>
+                                <th className="p-3">Pelanggan</th>
+                                <th className="p-3">Info</th>
+                                <th className="p-3 text-right">Total</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {transactions.slice(0, 10).map((t: any) => (
+                                <tr key={t.id} className="border-b last:border-0 hover:bg-slate-50">
+                                    <td className="p-3">
+                                        <div className="font-bold text-slate-700">{t.invoiceNo}</div>
+                                        <div className="text-[10px] text-slate-400">{new Date(t.createdAt).toLocaleTimeString()}</div>
+                                    </td>
+                                    <td className="p-3">
+                                        {/* Menampilkan Nama Customer */}
+                                        <div className="font-medium text-slate-600">{t.customerName || "Guest"}</div>
+                                    </td>
+                                    <td className="p-3">
+                                        {/* Menampilkan Platform (Sumber) & Metode Bayar */}
+                                        <div className="font-bold text-[10px] bg-slate-100 px-1.5 py-0.5 rounded w-fit mb-1">{t.platform}</div>
+                                        <div className="text-[10px] text-slate-500">{t.paymentMethod}</div>
+                                    </td>
+                                    <td className="p-3 text-right font-bold text-indigo-700">Rp {t.totalAmount.toLocaleString()}</td>
+                                </tr>
+                            ))}
+                            {transactions.length === 0 && <tr><td colSpan={4} className="p-4 text-center text-slate-400">Belum ada transaksi.</td></tr>}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            {/* Pengeluaran */}
-            <div className="border rounded-lg overflow-hidden">
+            {/* Tabel Pengeluaran */}
+            <div className="border rounded-lg overflow-hidden h-fit">
                 <div className="bg-slate-50 p-3 border-b font-bold text-xs uppercase text-slate-500">Riwayat Pengeluaran</div>
                 <table className="w-full text-xs text-left">
                      <tbody>
                         {expenses.map((e: any) => (
-                            <tr key={e.id} className="border-b last:border-0">
+                            <tr key={e.id} className="border-b last:border-0 hover:bg-slate-50">
                                 <td className="p-3">
                                     <div className="font-medium">{e.name}</div>
                                     <div className="text-slate-400">{new Date(e.date).toLocaleDateString()}</div>
@@ -181,6 +203,7 @@ export default function ReportsPage() {
                                 <td className="p-3 text-right text-rose-500 font-bold">- Rp {e.amount.toLocaleString()}</td>
                             </tr>
                         ))}
+                        {expenses.length === 0 && <tr><td colSpan={2} className="p-4 text-center text-slate-400">Belum ada pengeluaran.</td></tr>}
                     </tbody>
                 </table>
             </div>
@@ -191,14 +214,13 @@ export default function ReportsPage() {
       {/* Style CSS Khusus Print (Sembunyikan Nav/Sidebar) */}
       <style jsx global>{`
         @media print {
-          @page { margin: 20mm; size: A4; }
-          body { background: white; }
-          /* Sembunyikan elemen dashboard layout */
+          @page { margin: 15mm; size: A4; }
+          body { background: white; -webkit-print-color-adjust: exact; }
           nav, aside, button, .print\\:hidden { display: none !important; }
-          /* Pastikan area print tampil penuh */
           .print\\:w-full { width: 100% !important; margin: 0; }
-          /* Reset warna background untuk hemat tinta tapi tetap jelas */
-          .bg-blue-50, .bg-emerald-50, .bg-rose-50, .bg-indigo-50 { background-color: white !important; border: 1px solid #ddd; }
+          /* Reset warna agar hemat tinta namun tetap terbaca */
+          .bg-blue-50, .bg-emerald-50, .bg-rose-50, .bg-indigo-50 { background-color: #f8fafc !important; border: 1px solid #e2e8f0; }
+          .text-white { color: black !important; }
         }
       `}</style>
     </div>
