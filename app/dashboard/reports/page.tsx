@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { Calendar, DollarSign, TrendingUp, TrendingDown, Wallet, Printer, FileText } from "lucide-react";
-import { useReactToPrint } from "react-to-print"; // Kita pakai hook manual print saja biar ringan
+import { DollarSign, TrendingUp, TrendingDown, Wallet, Printer, FileText } from "lucide-react";
 
 export default function ReportsPage() {
   const [data, setData] = useState<any>(null);
@@ -101,12 +100,23 @@ export default function ReportsPage() {
             <p className="text-sm">Periode: {new Date(startDate).toLocaleDateString("id-ID")} s/d {new Date(endDate).toLocaleDateString("id-ID")}</p>
         </div>
 
-        {/* 1. KARTU RINGKASAN */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        {/* --- [UPDATE BARU] HIGHLIGHT LABA BERSIH --- */}
+        <div className="mb-6">
+            <div className="bg-white p-4 rounded shadow border-l-4 border-indigo-500">
+                <h3 className="text-gray-500 text-sm font-bold">LABA BERSIH (NET PROFIT)</h3>
+                <p className="text-xs text-gray-400 mb-1">(Omset - Modal Barang - Pengeluaran)</p>
+                <div className="text-3xl font-bold text-indigo-700">
+                    Rp {summary.netProfit.toLocaleString()}
+                </div>
+            </div>
+        </div>
+
+        {/* 1. KARTU RINGKASAN LAINNYA */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
             <Card title="Total Omset" value={summary.totalOmset} icon={<DollarSign/>} color="text-blue-600" bg="bg-blue-50" />
             <Card title="Laba Kotor" value={summary.grossProfit} icon={<TrendingUp/>} color="text-emerald-600" bg="bg-emerald-50" sub="Omset - Modal" />
             <Card title="Pengeluaran" value={summary.totalExpense} icon={<TrendingDown/>} color="text-rose-500" bg="bg-rose-50" />
-            <Card title="LABA BERSIH" value={summary.netProfit} icon={<Wallet/>} color="text-indigo-700" bg="bg-indigo-50" border="border-indigo-200" />
+            {/* Note: Card Laba Bersih yang kecil saya hapus karena sudah ada yang besar di atas */}
         </div>
 
         {/* 2. BREAKDOWN HARIAN (Tabel Analisis) */}

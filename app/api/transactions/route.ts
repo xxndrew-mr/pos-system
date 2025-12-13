@@ -1,66 +1,114 @@
 // app/api/transactions/route.ts
-import { NextResponse } from "next/server"; // <--- INI WAJIB ADA
-import { prisma } from "@/lib/prisma";      // <--- INI WAJIB ADA
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    // Destructuring data dari body request
-    const { items, totalAmount, paymentMethod, cashReceived, changeAmount, paymentProof } = body;
 
-    // VALIDASI 1: Cek apakah keranjang kosong
+    const {
+      items,
+      totalAmount,
+      paymentMethod,
+      cashReceived,
+      paymentProof,
+      customerName,
+      platform,
+    } = body;
+
+    // ===============================
+    // VALIDASI
+    // ===============================
     if (!items || items.length === 0) {
-      return NextResponse.json({ message: "Keranjang kosong" }, { status: 400 });
+      return NextResponse.json(
+        { message: "Keranjang kosong" },
+        { status: 400 }
+      );
     }
 
-    // TRANSAKSI ATOMIK (Prisma Transaction)
-    // Semua perintah di dalam sini harus sukses. Jika satu gagal, semua batal.
+    // ===============================
+    // LOGIKA PEMBAYARAN & HUTANG
+    // ===============================
+    let paymentStatus: "PAID" | "UNPAID" = "PAID";
+    let debtAmount = 0;
+
+    // CASH tapi uang kurang → HUTANG
+    if (paymentMethod === "CASH" && (cashReceived || 0) < totalAmount) {
+      paymentStatus = "UNPAID";
+      debtAmount = totalAmount - (cashReceived || 0);
+    }
+
+    // Metode BON / HUTANG
+    if (paymentMethod === "DEBT") {
+      paymentStatus = "UNPAID";
+      debtAmount = totalAmount;
+    }
+
+    // Hitung kembalian (hanya jika cash & cukup)
+    const changeAmount =
+      paymentMethod === "CASH" && (cashReceived || 0) >= totalAmount
+        ? (cashReceived || 0) - totalAmount
+        : 0;
+
+    // ===============================
+    // TRANSAKSI ATOMIK (AMAN)
+    // ===============================
     const result = await prisma.$transaction(async (tx) => {
-      
-      // 1. Buat Header Transaksi
+      // Generate invoice unik
+      const count = await tx.transaction.count();
+      const invoiceNo = `INV-${Date.now()}-${count + 1}`;
+
+      // 1️⃣ BUAT HEADER TRANSAKSI
       const transaction = await tx.transaction.create({
         data: {
-          invoiceNo: `INV-${Date.now()}`, // Generate nomor invoice unik pakai timestamp
+          invoiceNo,
           totalAmount: Number(totalAmount),
-          paymentMethod: paymentMethod,
+          paymentMethod,
           cashReceived: Number(cashReceived) || 0,
-          changeAmount: Number(changeAmount) || 0,
-          paymentProof: paymentProof || null, // Simpan URL bukti transfer jika ada
+          changeAmount,
+          paymentProof: paymentProof || null,
+
+          // DATA TAMBAHAN
+          customerName: customerName || "Guest",
+          platform: platform || "TOKO",
+          paymentStatus,
+          debtAmount,
         },
       });
 
-      // 2. Loop setiap barang di keranjang
+      // 2️⃣ LOOP ITEM + CEK STOK + SIMPAN DETAIL
       for (const item of items) {
-        // Cek stok terbaru di DB (mencegah race condition)
         const product = await tx.product.findUnique({
-            where: { id: item.id }
+          where: { id: item.id },
         });
 
         if (!product) {
-            throw new Error(`Produk tidak ditemukan: ${item.name}`);
+          throw new Error(`Produk tidak ditemukan: ${item.name}`);
         }
 
         if (product.stock < item.quantity) {
-            throw new Error(`Stok tidak cukup untuk: ${item.name} (Sisa: ${product.stock})`);
+          throw new Error(
+            `Stok tidak cukup untuk ${item.name} (Sisa: ${product.stock})`
+          );
         }
 
-        // Simpan Detail Transaksi
+        // Simpan detail transaksi
         await tx.transactionItem.create({
           data: {
             transactionId: transaction.id,
             productId: item.id,
             quantity: item.quantity,
             priceAtTime: item.price,
-            costAtTime: product.costPrice, // Penting untuk laporan laba rugi
+            costAtTime: product.costPrice,
           },
         });
 
-        // 3. Kurangi Stok Produk
+        // Kurangi stok
         await tx.product.update({
           where: { id: item.id },
           data: {
             stock: {
-              decrement: item.quantity, // Kurangi stok sesuai jumlah beli
+              decrement: item.quantity,
             },
           },
         });
@@ -69,10 +117,15 @@ export async function POST(req: Request) {
       return transaction;
     });
 
-    return NextResponse.json({ success: true, data: result });
-
+    return NextResponse.json({
+      success: true,
+      data: result,
+    });
   } catch (error: any) {
     console.error("Transaction Error:", error);
-    return NextResponse.json({ success: false, message: error.message }, { status: 400 });
+    return NextResponse.json(
+      { success: false, message: error.message },
+      { status: 400 }
+    );
   }
 }
