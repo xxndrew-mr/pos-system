@@ -1,10 +1,16 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Plus, Trash, Package, Barcode, Tag, Archive, X, AlertCircle, Printer } from "lucide-react";
+import { Plus, Trash, Package, Barcode, Tag, Archive, X, AlertCircle, Printer, Pencil } from "lucide-react"; // Tambah icon Pencil
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  
+  // State untuk Mode Edit
+  const [isEditing, setIsEditing] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     name: "", barcode: "", price: 0, costPrice: 0, stock: 0
   });
@@ -19,34 +25,82 @@ export default function ProductsPage() {
     if (data.products) setProducts(data.products);
   };
 
+  // Handle Tombol Tambah Baru
+  const handleAddNew = () => {
+    setIsEditing(false);
+    setEditId(null);
+    setFormData({ name: "", barcode: "", price: 0, costPrice: 0, stock: 0 });
+    setShowModal(true);
+  };
+
+  // Handle Tombol Edit
+  const handleEdit = (product: any) => {
+    setIsEditing(true);
+    setEditId(product.id);
+    // Isi form dengan data yang mau diedit
+    setFormData({
+        name: product.name,
+        barcode: product.barcode,
+        price: product.price,
+        costPrice: product.costPrice,
+        stock: product.stock
+    });
+    setShowModal(true);
+  };
+
+  // Handle Simpan (Bisa Create atau Update)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch("/api/products", {
-      method: "POST",
-      body: JSON.stringify(formData),
-      headers: { "Content-Type": "application/json" },
-    });
+    setLoading(true);
 
-    if (res.ok) {
-      setShowModal(false);
-      setFormData({ name: "", barcode: "", price: 0, costPrice: 0, stock: 0 });
-      fetchProducts();
-    } else {
-      const err = await res.json();
-      alert(err.message);
+    try {
+        if (isEditing && editId) {
+            // MODE UPDATE (PUT)
+            const res = await fetch(`/api/products/${editId}`, {
+                method: "PUT",
+                body: JSON.stringify(formData),
+                headers: { "Content-Type": "application/json" },
+            });
+            if (!res.ok) throw new Error("Gagal update");
+        } else {
+            // MODE CREATE (POST)
+            const res = await fetch("/api/products", {
+                method: "POST",
+                body: JSON.stringify(formData),
+                headers: { "Content-Type": "application/json" },
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.message || "Gagal simpan");
+            }
+        }
+
+        // Jika sukses
+        setShowModal(false);
+        fetchProducts(); // Refresh data
+        
+    } catch (error: any) {
+        alert(error.message);
+    } finally {
+        setLoading(false);
     }
   };
 
-  // Fungsi Baru: Cetak Label
-  const handlePrintLabel = (id: string) => {
-    window.open(`/dashboard/products/print-label/${id}`, '_blank', 'width=400,height=400');
+  // Handle Delete
+  const handleDelete = async (id: string) => {
+      if(!confirm("Yakin ingin menghapus produk ini selamanya?")) return;
+      
+      const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+      if (res.ok) {
+          fetchProducts();
+      } else {
+          alert("Gagal menghapus produk");
+      }
   };
 
-  // Fungsi Hapus (Placeholder logic)
-  const handleDelete = async (id: string) => {
-      if(!confirm("Hapus produk ini?")) return;
-      // Tambahkan logic fetch delete ke API disini jika sudah ada endpointnya
-      alert("Fitur hapus belum dihubungkan ke API (bisa ditambahkan nanti)");
+  // Handle Cetak Label
+  const handlePrintLabel = (id: string) => {
+    window.open(`/dashboard/products/print-label/${id}`, '_blank', 'width=400,height=400');
   };
 
   return (
@@ -64,7 +118,7 @@ export default function ProductsPage() {
         </div>
 
         <button
-          onClick={() => setShowModal(true)}
+          onClick={handleAddNew}
           className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 
                       hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-200 transition-all active:scale-95 font-medium"
         >
@@ -130,21 +184,18 @@ export default function ProductsPage() {
 
                         <td className="p-5 text-center">
                             <div className="flex items-center justify-center gap-1">
-                                {/* Tombol CETAK LABEL (Baru) */}
-                                <button 
-                                    onClick={() => handlePrintLabel(p.id)}
-                                    className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all" 
-                                    title="Cetak Label Barcode"
-                                >
+                                {/* Tombol CETAK LABEL */}
+                                <button onClick={() => handlePrintLabel(p.id)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all" title="Cetak Label">
                                     <Printer size={18} />
                                 </button>
                                 
+                                {/* Tombol EDIT (Baru) */}
+                                <button onClick={() => handleEdit(p)} className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-full transition-all" title="Edit Produk">
+                                    <Pencil size={18} />
+                                </button>
+                                
                                 {/* Tombol HAPUS */}
-                                <button 
-                                    onClick={() => handleDelete(p.id)}
-                                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all" 
-                                    title="Hapus Produk"
-                                >
+                                <button onClick={() => handleDelete(p.id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-all" title="Hapus Produk">
                                     <Trash size={18} />
                                 </button>
                             </div>
@@ -155,23 +206,20 @@ export default function ProductsPage() {
             </tbody>
             </table>
         </div>
-        
-        {products.length > 0 && (
-            <div className="bg-slate-50 border-t border-slate-100 p-4 text-xs text-slate-500 flex justify-between items-center">
-                <span>Menampilkan <strong>{products.length}</strong> produk</span>
-            </div>
-        )}
       </div>
 
-      {/* MODAL */}
+      {/* MODAL (Bisa Create & Edit) */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100">
             
-            {/* Modal Header */}
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                   <Plus className="bg-indigo-100 text-indigo-600 p-1 rounded-md" size={24}/> Tambah Produk
+                   {isEditing ? (
+                       <><Pencil className="bg-orange-100 text-orange-600 p-1 rounded-md" size={24}/> Edit Produk</>
+                   ) : (
+                       <><Plus className="bg-indigo-100 text-indigo-600 p-1 rounded-md" size={24}/> Tambah Produk</>
+                   )}
                 </h2>
                 <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 transition">
                     <X size={20}/>
@@ -179,20 +227,15 @@ export default function ProductsPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
-
+              
               {/* Barcode */}
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Barcode / Kode</label>
                 <div className="relative">
                     <span className="absolute left-3 top-3 text-slate-400"><Barcode size={18}/></span>
-                    <input
-                    /* UPDATE: Tidak required, agar bisa Auto-Generate */
-                    type="text"
-                    value={formData.barcode}
-                    onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all font-mono"
-                    placeholder="Scan / Kosongkan untuk Auto-Generate"
-                    />
+                    <input type="text" value={formData.barcode} onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                    placeholder={isEditing ? "Biarkan tetap jika tidak ganti" : "Scan / Kosongkan untuk Auto-Generate"} />
                 </div>
               </div>
 
@@ -201,78 +244,45 @@ export default function ProductsPage() {
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Nama Produk</label>
                 <div className="relative">
                     <span className="absolute left-3 top-3 text-slate-400"><Tag size={18}/></span>
-                    <input
-                    required
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                    placeholder="Nama barang..."
-                    />
+                    <input required type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Nama barang..." />
                 </div>
               </div>
 
               {/* Stok */}
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Stok Awal</label>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Stok Saat Ini</label>
                 <div className="relative">
                     <span className="absolute left-3 top-3 text-slate-400"><Archive size={18}/></span>
-                    <input
-                    required
-                    type="number"
-                    value={formData.stock}
-                    onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
-                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                    />
+                    <input required type="number" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
+                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                 </div>
               </div>
 
               {/* Harga Group */}
               <div className="grid grid-cols-2 gap-5 p-4 bg-slate-50 rounded-xl border border-slate-100">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5">Harga Modal (Beli)</label>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5">Harga Modal</label>
                   <div className="relative">
                     <span className="absolute left-3 top-3 text-slate-400 text-xs font-bold">Rp</span>
-                    <input
-                        required
-                        type="number"
-                        value={formData.costPrice}
-                        onChange={(e) => setFormData({ ...formData, costPrice: Number(e.target.value) })}
-                        className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all font-mono text-sm"
-                    />
+                    <input required type="number" value={formData.costPrice} onChange={(e) => setFormData({ ...formData, costPrice: Number(e.target.value) })}
+                    className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 font-mono text-sm" />
                   </div>
                 </div>
-
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1.5">Harga Jual</label>
                   <div className="relative">
                     <span className="absolute left-3 top-3 text-emerald-600 text-xs font-bold">Rp</span>
-                    <input
-                        required
-                        type="number"
-                        value={formData.price}
-                        onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                        className="w-full pl-9 pr-3 py-2 border border-emerald-300 ring-1 ring-emerald-100 rounded-lg text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all font-mono font-bold text-sm"
-                    />
+                    <input required type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                    className="w-full pl-9 pr-3 py-2 border border-emerald-300 ring-1 ring-emerald-100 rounded-lg text-slate-900 focus:ring-2 focus:ring-emerald-500 font-mono font-bold text-sm" />
                   </div>
                 </div>
               </div>
 
-              {/* BUTTONS */}
               <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 bg-white border border-slate-300 text-slate-700 py-3 rounded-xl font-medium hover:bg-slate-50 transition"
-                >
-                  Batal
-                </button>
-
-                <button
-                  type="submit"
-                  className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:shadow-indigo-300 transition-all active:scale-95"
-                >
-                  Simpan Produk
+                <button type="button" onClick={() => setShowModal(false)} className="flex-1 bg-white border border-slate-300 text-slate-700 py-3 rounded-xl font-medium hover:bg-slate-50 transition">Batal</button>
+                <button disabled={loading} type="submit" className={`flex-1 text-white py-3 rounded-xl font-bold shadow-lg transition-all active:scale-95 ${isEditing ? 'bg-orange-500 hover:bg-orange-600 shadow-orange-200' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'}`}>
+                    {loading ? "Menyimpan..." : (isEditing ? "Update Produk" : "Simpan Produk")}
                 </button>
               </div>
 

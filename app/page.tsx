@@ -34,7 +34,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 px-4">
       <div className="w-full max-w-md bg-white/90 backdrop-blur-md p-8 rounded-2xl shadow-xl border border-gray-200">
         <h1 className="text-3xl font-bold text-center mb-6 text-gray-800 tracking-tight">
-          Sistem Kasir
+          Kasir Maelika Butik
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-5">

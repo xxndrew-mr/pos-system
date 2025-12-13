@@ -160,9 +160,6 @@ export default function PosPage() {
                 <h1 className="text-xl font-bold text-slate-800 tracking-tight">Kasir System</h1>
             </div>
             <div className="flex items-center gap-2">
-                <button onClick={() => router.push('/dashboard/products')} className="px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition flex items-center gap-2 font-medium text-sm border border-transparent hover:border-slate-200">
-                    <LayoutDashboard size={16}/> Dashboard
-                </button>
                 <button onClick={() => signOut({callbackUrl:'/'})} className="px-4 py-2 rounded-lg text-rose-600 hover:bg-rose-50 transition flex items-center gap-2 font-medium text-sm border border-transparent hover:border-rose-100">
                     <LogOut size={16}/> Keluar
                 </button>

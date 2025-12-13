@@ -1,15 +1,47 @@
 "use client";
-import { useState, useEffect } from "react";
-import { Coins, TrendingUp, TrendingDown, Wallet, Calendar, Filter, FileText, ArrowUpRight, ArrowDownRight, CreditCard } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Calendar, DollarSign, TrendingUp, TrendingDown, Wallet, Printer, FileText } from "lucide-react";
+import { useReactToPrint } from "react-to-print"; // Kita pakai hook manual print saja biar ringan
 
 export default function ReportsPage() {
   const [data, setData] = useState<any>(null);
-  const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
-  const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0]);
+  
+  // State Filter Tanggal
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [activeFilter, setActiveFilter] = useState("TODAY"); // TODAY, WEEK, MONTH
+
+  // Ref untuk area yang mau dicetak
+  const printRef = useRef(null);
 
   useEffect(() => {
-    fetchReport();
+    setFilter("TODAY"); // Default hari ini saat load pertama
+  }, []);
+
+  useEffect(() => {
+    if(startDate && endDate) fetchReport();
   }, [startDate, endDate]);
+
+  // Fungsi Helper Ganti Filter Cepat
+  const setFilter = (mode: string) => {
+    setActiveFilter(mode);
+    const today = new Date();
+    const start = new Date();
+
+    if (mode === "TODAY") {
+        // Start & End = Hari ini
+    } else if (mode === "WEEK") {
+        // Mundur 7 hari
+        start.setDate(today.getDate() - 7);
+    } else if (mode === "MONTH") {
+        // Set ke tanggal 1 bulan ini
+        start.setDate(1); 
+    }
+
+    // Format ke YYYY-MM-DD untuk input date HTML
+    setStartDate(start.toISOString().split("T")[0]);
+    setEndDate(today.toISOString().split("T")[0]);
+  };
 
   const fetchReport = async () => {
     const res = await fetch(`/api/reports?start=${startDate}&end=${endDate}`);
@@ -17,230 +49,164 @@ export default function ReportsPage() {
     setData(json);
   };
 
-  if (!data) return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center text-slate-400">
-        <div className="animate-pulse flex flex-col items-center gap-3">
-            <div className="h-12 w-12 bg-slate-200 rounded-full"></div>
-            <div className="h-4 w-32 bg-slate-200 rounded"></div>
-        </div>
-    </div>
-  );
+  // Fungsi Cetak (Akan mencetak area div "printRef")
+  const handlePrint = () => {
+    window.print();
+  };
 
-  const { summary, transactions, expenses } = data;
+  if (!data) return <div className="p-10 text-center">Memuat Laporan...</div>;
+
+  const { summary, dailyBreakdown, transactions, expenses } = data;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8 font-sans text-slate-800">
-      <div className="max-w-7xl mx-auto space-y-8">
-
-        {/* HEADER */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
-          <div>
-            <div className="flex items-center gap-2 text-indigo-600 mb-1">
-                <FileText size={20} />
-                <span className="font-bold text-sm tracking-wide uppercase">Financial Overview</span>
-            </div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Laporan Keuangan</h1>
-            <p className="text-slate-500 mt-1">Ringkasan performa bisnis dan arus kas Anda.</p>
-          </div>
-
-          <div className="bg-white p-2 pl-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 text-slate-500">
-                <Calendar size={18} />
-                <span className="text-xs font-bold uppercase tracking-wider">Periode:</span>
+    <div className="space-y-6">
+      
+      {/* --- HEADER CONTROLS (TIDAK TERCETAK) --- */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
+        <div>
+            <h1 className="text-2xl font-bold text-slate-800">Laporan Keuangan</h1>
+            <p className="text-slate-500 text-sm">Analisis performa penjualan toko</p>
+        </div>
+        
+        <div className="flex flex-wrap gap-2">
+            {/* Tombol Filter Cepat */}
+            <div className="flex bg-white rounded-lg border p-1 shadow-sm">
+                <button onClick={() => setFilter("TODAY")} className={`px-3 py-1 text-sm rounded-md transition ${activeFilter==='TODAY' ? 'bg-indigo-100 text-indigo-700 font-bold' : 'text-slate-500 hover:bg-slate-50'}`}>Hari Ini</button>
+                <button onClick={() => setFilter("WEEK")} className={`px-3 py-1 text-sm rounded-md transition ${activeFilter==='WEEK' ? 'bg-indigo-100 text-indigo-700 font-bold' : 'text-slate-500 hover:bg-slate-50'}`}>Minggu Ini</button>
+                <button onClick={() => setFilter("MONTH")} className={`px-3 py-1 text-sm rounded-md transition ${activeFilter==='MONTH' ? 'bg-indigo-100 text-indigo-700 font-bold' : 'text-slate-500 hover:bg-slate-50'}`}>Bulan Ini</button>
             </div>
 
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5">
-                <input
-                    type="date"
-                    value={startDate}
-                    onChange={e=>setStartDate(e.target.value)}
-                    className="bg-transparent text-sm font-medium text-slate-700 outline-none cursor-pointer"
-                />
-                <span className="text-slate-400">-</span>
-                <input
-                    type="date"
-                    value={endDate}
-                    onChange={e=>setEndDate(e.target.value)}
-                    className="bg-transparent text-sm font-medium text-slate-700 outline-none cursor-pointer"
-                />
-            </div>
-
-            <button
-              onClick={fetchReport}
-              className="bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-md shadow-indigo-200 hover:bg-indigo-700 hover:shadow-lg transition-all flex items-center gap-2"
-            >
-              <Filter size={16} /> Terapkan
+            {/* Tombol Cetak */}
+            <button onClick={handlePrint} className="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-900 shadow-md">
+                <Printer size={18}/> Cetak / PDF
             </button>
-          </div>
-        </div>
-
-        {/* SUMMARY CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          <Card 
-            title="Total Omset" 
-            value={summary.totalOmset} 
-            icon={<Coins size={24} />} 
-            colorClass="text-blue-600 bg-blue-50 border-blue-100" 
-            trendIcon={<ArrowUpRight size={16}/>}
-          />
-          <Card 
-            title="Laba Kotor" 
-            value={summary.grossProfit} 
-            icon={<TrendingUp size={24} />} 
-            colorClass="text-emerald-600 bg-emerald-50 border-emerald-100" 
-            sub="Omset - HPP"
-          />
-          <Card 
-            title="Pengeluaran" 
-            value={summary.totalExpense} 
-            icon={<TrendingDown size={24} />} 
-            colorClass="text-rose-600 bg-rose-50 border-rose-100" 
-          />
-          <Card 
-            title="Laba Bersih" 
-            value={summary.netProfit} 
-            icon={<Wallet size={24} />} 
-            colorClass="text-violet-600 bg-violet-50 border-violet-100" 
-            isHighlight={true}
-          />
-        </div>
-
-        {/* TABLES GRID */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-
-          {/* TRANSAKSI */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-[500px]">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-2xl">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                <span className="w-2 h-6 bg-blue-500 rounded-full"></span>
-                Riwayat Penjualan
-              </h3>
-              <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold border border-blue-200">
-                {summary.transactionCount} Transaksi
-              </span>
-            </div>
-
-            <div className="overflow-y-auto flex-1 p-0">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-slate-50 text-slate-500 uppercase text-xs font-semibold sticky top-0 z-10 shadow-sm">
-                  <tr>
-                    <th className="p-4 pl-6">Invoice & Waktu</th>
-                    <th className="p-4">Metode</th>
-                    <th className="p-4 pr-6 text-right">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {transactions.map((t: any) => (
-                    <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="p-4 pl-6">
-                        <div className="font-mono font-medium text-slate-800">{t.invoiceNo}</div>
-                        <div className="text-xs text-slate-400 mt-0.5">
-                          {new Date(t.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} • {new Date(t.createdAt).toLocaleDateString()}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold border ${
-                            t.paymentMethod === 'CASH' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                            t.paymentMethod === 'QRIS' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                            'bg-blue-50 text-blue-700 border-blue-200'
-                        }`}>
-                            <CreditCard size={12}/>
-                            {t.paymentMethod}
-                        </span>
-                      </td>
-                      <td className="p-4 pr-6 text-right font-mono font-bold text-slate-700">
-                        Rp {t.totalAmount.toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                  {transactions.length === 0 && (
-                      <tr><td colSpan={3} className="p-8 text-center text-slate-400 italic">Belum ada transaksi pada periode ini.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* PENGELUARAN */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-[500px]">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-2xl">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                <span className="w-2 h-6 bg-rose-500 rounded-full"></span>
-                Riwayat Pengeluaran
-              </h3>
-            </div>
-
-            <div className="overflow-y-auto flex-1 p-0">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-slate-50 text-slate-500 uppercase text-xs font-semibold sticky top-0 z-10 shadow-sm">
-                  <tr>
-                    <th className="p-4 pl-6">Keterangan</th>
-                    <th className="p-4 pr-6 text-right">Jumlah</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {expenses.map((e: any) => (
-                    <tr key={e.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="p-4 pl-6">
-                        <div className="font-medium text-slate-800">{e.name}</div>
-                        <div className="text-xs text-slate-400 mt-0.5">
-                          {new Date(e.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}
-                        </div>
-                      </td>
-                      <td className="p-4 pr-6 text-right">
-                         <div className="font-mono font-bold text-rose-600">
-                            - Rp {e.amount.toLocaleString()}
-                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {expenses.length === 0 && (
-                    <tr>
-                      <td colSpan={2} className="p-12 text-center">
-                        <div className="flex flex-col items-center justify-center text-slate-300">
-                            <TrendingDown size={32} className="mb-2 opacity-50"/>
-                            <span className="text-slate-400 italic">Tidak ada pengeluaran tercatat.</span>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
         </div>
       </div>
+
+      {/* Input Tanggal Manual (Jika butuh custom range) */}
+      <div className="flex gap-2 items-center bg-white p-3 rounded-lg shadow-sm w-fit print:hidden">
+            <span className="text-xs font-bold text-slate-500 uppercase">Custom Tanggal:</span>
+            <input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} className="border rounded px-2 py-1 text-sm"/>
+            <span className="text-slate-400">-</span>
+            <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} className="border rounded px-2 py-1 text-sm"/>
+      </div>
+
+
+      {/* --- AREA YANG AKAN DICETAK (PRINT AREA) --- */}
+      <div ref={printRef} className="print:w-full print:p-0">
+        
+        {/* Header Cetakan (Hanya muncul saat print) */}
+        <div className="hidden print:block text-center mb-6 border-b pb-4">
+            <h1 className="text-2xl font-bold uppercase">Laporan Keuangan Toko</h1>
+            <p className="text-sm">Periode: {new Date(startDate).toLocaleDateString("id-ID")} s/d {new Date(endDate).toLocaleDateString("id-ID")}</p>
+        </div>
+
+        {/* 1. KARTU RINGKASAN */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <Card title="Total Omset" value={summary.totalOmset} icon={<DollarSign/>} color="text-blue-600" bg="bg-blue-50" />
+            <Card title="Laba Kotor" value={summary.grossProfit} icon={<TrendingUp/>} color="text-emerald-600" bg="bg-emerald-50" sub="Omset - Modal" />
+            <Card title="Pengeluaran" value={summary.totalExpense} icon={<TrendingDown/>} color="text-rose-500" bg="bg-rose-50" />
+            <Card title="LABA BERSIH" value={summary.netProfit} icon={<Wallet/>} color="text-indigo-700" bg="bg-indigo-50" border="border-indigo-200" />
+        </div>
+
+        {/* 2. BREAKDOWN HARIAN (Tabel Analisis) */}
+        <div className="mb-8">
+            <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><FileText size={20}/> Rincian Per Hari</h3>
+            <table className="w-full text-sm text-left border border-slate-200 rounded-lg overflow-hidden">
+                <thead className="bg-slate-100 text-slate-700 uppercase text-xs font-bold">
+                    <tr>
+                        <th className="p-3 border-b">Tanggal</th>
+                        <th className="p-3 border-b text-right">Omset</th>
+                        <th className="p-3 border-b text-right">Pengeluaran</th>
+                        <th className="p-3 border-b text-right">Laba Bersih</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {dailyBreakdown.map((day: any, idx: number) => (
+                        <tr key={idx} className="border-b hover:bg-slate-50">
+                            <td className="p-3 font-medium">{day.date}</td>
+                            <td className="p-3 text-right">Rp {day.omset.toLocaleString()}</td>
+                            <td className="p-3 text-right text-rose-500">{day.expense > 0 ? `(Rp ${day.expense.toLocaleString()})` : '-'}</td>
+                            <td className={`p-3 text-right font-bold ${day.profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                Rp {day.profit.toLocaleString()}
+                            </td>
+                        </tr>
+                    ))}
+                    {dailyBreakdown.length === 0 && <tr><td colSpan={4} className="p-4 text-center text-gray-400">Tidak ada data.</td></tr>}
+                </tbody>
+            </table>
+        </div>
+
+        {/* 3. DETAIL TRANSAKSI (Opsional, di print mungkin panjang) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-1">
+            {/* Transaksi */}
+            <div className="border rounded-lg overflow-hidden">
+                <div className="bg-slate-50 p-3 border-b font-bold text-xs uppercase text-slate-500">Riwayat Transaksi Terakhir</div>
+                <table className="w-full text-xs text-left">
+                    <tbody>
+                        {transactions.slice(0, 10).map((t: any) => (
+                            <tr key={t.id} className="border-b last:border-0">
+                                <td className="p-3">
+                                    <div className="font-bold">{t.invoiceNo}</div>
+                                    <div className="text-slate-400">{new Date(t.createdAt).toLocaleTimeString()}</div>
+                                </td>
+                                <td className="p-3 text-right font-medium">Rp {t.totalAmount.toLocaleString()}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Pengeluaran */}
+            <div className="border rounded-lg overflow-hidden">
+                <div className="bg-slate-50 p-3 border-b font-bold text-xs uppercase text-slate-500">Riwayat Pengeluaran</div>
+                <table className="w-full text-xs text-left">
+                     <tbody>
+                        {expenses.map((e: any) => (
+                            <tr key={e.id} className="border-b last:border-0">
+                                <td className="p-3">
+                                    <div className="font-medium">{e.name}</div>
+                                    <div className="text-slate-400">{new Date(e.date).toLocaleDateString()}</div>
+                                </td>
+                                <td className="p-3 text-right text-rose-500 font-bold">- Rp {e.amount.toLocaleString()}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+      </div>
+
+      {/* Style CSS Khusus Print (Sembunyikan Nav/Sidebar) */}
+      <style jsx global>{`
+        @media print {
+          @page { margin: 20mm; size: A4; }
+          body { background: white; }
+          /* Sembunyikan elemen dashboard layout */
+          nav, aside, button, .print\\:hidden { display: none !important; }
+          /* Pastikan area print tampil penuh */
+          .print\\:w-full { width: 100% !important; margin: 0; }
+          /* Reset warna background untuk hemat tinta tapi tetap jelas */
+          .bg-blue-50, .bg-emerald-50, .bg-rose-50, .bg-indigo-50 { background-color: white !important; border: 1px solid #ddd; }
+        }
+      `}</style>
     </div>
   );
 }
 
-// Komponen Card yang dipercantik
-function Card({ title, value, icon, colorClass, sub, isHighlight, trendIcon }: any) {
-  return (
-    <div className={`p-6 rounded-2xl border transition-all duration-200 hover:shadow-md ${isHighlight ? 'bg-white shadow-lg border-violet-100 ring-1 ring-violet-100' : 'bg-white shadow-sm border-slate-200'}`}>
-      <div className="flex justify-between items-start mb-4">
-        <div className={`p-3 rounded-xl ${colorClass}`}>
-          {icon}
-        </div>
-        {trendIcon && (
-            <div className="text-slate-400">
-                {trendIcon}
+// Komponen Card Sederhana
+function Card({ title, value, icon, color, bg = "bg-white", sub, border = "border-transparent" }: any) {
+    return (
+        <div className={`${bg} border ${border} p-4 rounded-xl shadow-sm flex flex-col justify-between h-full`}>
+            <div className="flex justify-between items-start mb-2">
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-wide">{title}</p>
+                <div className={`p-2 rounded-lg bg-white/50 ${color}`}>{icon}</div>
             </div>
-        )}
-      </div>
-      
-      <div>
-        <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">{title}</p>
-        <h3 className="text-2xl font-black text-slate-800 font-mono tracking-tight">
-            Rp {value.toLocaleString()}
-        </h3>
-        {sub ? (
-            <p className="text-xs text-slate-400 mt-2 font-medium bg-slate-100 inline-block px-2 py-0.5 rounded">{sub}</p>
-        ) : (
-            <div className="h-6"></div> // Spacer agar tinggi kartu seragam
-        )}
-      </div>
-    </div>
-  );
+            <div>
+                <h3 className={`text-xl md:text-2xl font-bold ${color}`}>Rp {value.toLocaleString()}</h3>
+                {sub && <p className="text-[10px] text-slate-400 mt-1">{sub}</p>}
+            </div>
+        </div>
+    );
 }
