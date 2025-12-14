@@ -12,6 +12,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: "Laporan", href: "/dashboard/reports", icon: FileText }, 
     { name: "Pengeluaran", href: "/dashboard/expenses", icon: Wallet },
     { name: "Piutang/DP", href: "/dashboard/debts", icon: Wallet },
+    { name: "Settings", href: "/dashboard/settings", icon: Wallet },
   ];
 
   return (
