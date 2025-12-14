@@ -1,131 +1,67 @@
-// app/api/transactions/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+// POST: Buat Transaksi Baru (Support DP)
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const { 
+      items, totalAmount, paymentMethod, cashReceived, 
+      paymentProof, customerName, platform 
+    } = await req.json();
 
-    const {
-      items,
-      totalAmount,
-      paymentMethod,
-      cashReceived,
-      paymentProof,
-      customerName,
-      platform,
-    } = body;
+    // LOGIKA STATUS PEMBAYARAN (Retail & Konveksi)
+    let status = "PAID";
+    let debt = 0;
 
-    // ===============================
-    // VALIDASI
-    // ===============================
-    if (!items || items.length === 0) {
-      return NextResponse.json(
-        { message: "Keranjang kosong" },
-        { status: 400 }
-      );
+    // Jika metode DP (Termin)
+    if (paymentMethod === 'DP') {
+        status = "PARTIAL"; // Status: Belum Lunas
+        debt = totalAmount - (Number(cashReceived) || 0); // Sisa Hutang
     }
-
-    // ===============================
-    // LOGIKA PEMBAYARAN & HUTANG
-    // ===============================
-    let paymentStatus: "PAID" | "UNPAID" = "PAID";
-    let debtAmount = 0;
-
-    // CASH tapi uang kurang → HUTANG
-    if (paymentMethod === "CASH" && (cashReceived || 0) < totalAmount) {
-      paymentStatus = "UNPAID";
-      debtAmount = totalAmount - (cashReceived || 0);
+    // Jika metode CASH tapi uang kurang (dianggap hutang)
+    else if (paymentMethod === 'CASH' && (Number(cashReceived) || 0) < totalAmount) {
+        status = "PARTIAL";
+        debt = totalAmount - (Number(cashReceived) || 0);
     }
+    
+    // Generate Invoice
+    const count = await prisma.transaction.count();
+    const invoiceNo = `INV-${Date.now()}-${count + 1}`;
 
-    // Metode BON / HUTANG
-    if (paymentMethod === "DEBT") {
-      paymentStatus = "UNPAID";
-      debtAmount = totalAmount;
-    }
-
-    // Hitung kembalian (hanya jika cash & cukup)
-    const changeAmount =
-      paymentMethod === "CASH" && (cashReceived || 0) >= totalAmount
-        ? (cashReceived || 0) - totalAmount
-        : 0;
-
-    // ===============================
-    // TRANSAKSI ATOMIK (AMAN)
-    // ===============================
-    const result = await prisma.$transaction(async (tx) => {
-      // Generate invoice unik
-      const count = await tx.transaction.count();
-      const invoiceNo = `INV-${Date.now()}-${count + 1}`;
-
-      // 1️⃣ BUAT HEADER TRANSAKSI
-      const transaction = await tx.transaction.create({
-        data: {
-          invoiceNo,
-          totalAmount: Number(totalAmount),
-          paymentMethod,
-          cashReceived: Number(cashReceived) || 0,
-          changeAmount,
-          paymentProof: paymentProof || null,
-
-          // DATA TAMBAHAN
-          customerName: customerName || "Guest",
-          platform: platform || "TOKO",
-          paymentStatus,
-          debtAmount,
-        },
-      });
-
-      // 2️⃣ LOOP ITEM + CEK STOK + SIMPAN DETAIL
-      for (const item of items) {
-        const product = await tx.product.findUnique({
-          where: { id: item.id },
-        });
-
-        if (!product) {
-          throw new Error(`Produk tidak ditemukan: ${item.name}`);
-        }
-
-        if (product.stock < item.quantity) {
-          throw new Error(
-            `Stok tidak cukup untuk ${item.name} (Sisa: ${product.stock})`
-          );
-        }
-
-        // Simpan detail transaksi
-        await tx.transactionItem.create({
-          data: {
-            transactionId: transaction.id,
+    const transaction = await prisma.transaction.create({
+      data: {
+        invoiceNo,
+        totalAmount,
+        paymentMethod, // Bisa CASH, QRIS, TRANSFER, atau DP
+        cashReceived: Number(cashReceived),
+        changeAmount: (status === "PAID" && Number(cashReceived) > totalAmount) ? Number(cashReceived) - totalAmount : 0,
+        paymentProof,
+        customerName: customerName || "Guest",
+        platform: platform || "TOKO",
+        paymentStatus: status, // PAID / PARTIAL
+        debtAmount: debt,      // Nominal Hutang
+        items: {
+          create: items.map((item: any) => ({
             productId: item.id,
-            quantity: item.quantity,
+            quantity: item.qty,
             priceAtTime: item.price,
-            costAtTime: product.costPrice,
-          },
-        });
-
-        // Kurangi stok
-        await tx.product.update({
-          where: { id: item.id },
-          data: {
-            stock: {
-              decrement: item.quantity,
-            },
-          },
-        });
+            costAtTime: item.costPrice
+          }))
+        }
       }
-
-      return transaction;
     });
 
-    return NextResponse.json({
-      success: true,
-      data: result,
-    });
-  } catch (error: any) {
-    console.error("Transaction Error:", error);
-    return NextResponse.json(
-      { success: false, message: error.message },
-      { status: 400 }
-    );
+    // Update Stok (Tetap berkurang walaupun DP, karena barang sudah di-keep/dijahit)
+    for (const item of items) {
+      await prisma.product.update({
+        where: { id: item.id },
+        data: { stock: { decrement: item.qty } }
+      });
+    }
+
+    return NextResponse.json({ success: true, data: transaction });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ success: false, message: "Gagal transaksi" }, { status: 500 });
   }
 }

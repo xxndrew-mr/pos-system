@@ -10,7 +10,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navs = [
     { name: "Produk", href: "/dashboard/products", icon: Package },
     { name: "Laporan", href: "/dashboard/reports", icon: FileText }, 
-    { name: "Pengeluaran", href: "/dashboard/expenses", icon: Wallet }, 
+    { name: "Pengeluaran", href: "/dashboard/expenses", icon: Wallet },
+    { name: "Piutang/DP", href: "/dashboard/debts", icon: Wallet },
   ];
 
   return (
