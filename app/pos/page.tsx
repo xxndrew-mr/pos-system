@@ -4,8 +4,14 @@ import { Trash, Search, LogOut, Upload, CheckCircle, CreditCard, Banknote, QrCod
 import { signOut, useSession } from "next-auth/react";
 import QRCode from "react-qr-code";
 
+// [FIX 1] WAJIB ADA: Mencegah error "Prerender Error" saat deploy Vercel
+export const dynamic = "force-dynamic";
+
 export default function PosPage() {
-  const { data: session } = useSession();
+  // [FIX 2] Cara panggil session yang aman (Anti Crash saat Build)
+  const sessionObj = useSession();
+  const session = sessionObj?.data; 
+
   const [cart, setCart] = useState<any[]>([]);
   const [barcode, setBarcode] = useState("");
   const [loading, setLoading] = useState(false);
