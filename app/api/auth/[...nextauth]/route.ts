@@ -1,9 +1,8 @@
 // app/api/auth/[...nextauth]/route.ts
 import NextAuth, { AuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
-import { PrismaClient } from "@prisma/client"
 import * as bcrypt from "bcryptjs"
-import { prisma } from "@/lib/prisma" // Gunakan helper prisma yang sudah kita buat
+import { prisma } from "@/lib/prisma"
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -26,9 +25,11 @@ export const authOptions: AuthOptions = {
 
         if (!passwordMatch) return null;
 
+        // RETURN DATA USER KE JWT
         return {
           id: user.id,
-          name: user.name,
+          name: user.name,       // Nama Lengkap (Display)
+          username: user.username, // <--- PENTING: Username buat Logic Database
           role: user.role
         };
       }
@@ -39,6 +40,7 @@ export const authOptions: AuthOptions = {
       if (user) {
         token.role = user.role;
         token.id = user.id;
+        token.username = user.username; // <--- Simpan username ke Token
       }
       return token;
     },
@@ -46,12 +48,13 @@ export const authOptions: AuthOptions = {
       if (session.user) {
         session.user.role = token.role;
         session.user.id = token.id;
+        session.user.username = token.username; // <--- Simpan username ke Session
       }
       return session;
     }
   },
   pages: {
-    signIn: '/', // Redirect halaman login custom
+    signIn: '/', 
   },
   session: {
     strategy: "jwt"

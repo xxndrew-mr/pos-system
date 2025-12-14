@@ -14,10 +14,13 @@ enum Role {
   CASHIER
 }
 
+// Enum ini boleh dihapus jika paymentMethod di bawah jadi String
+// Tapi kalau mau tetap pakai Enum, WAJIB TAMBAH 'DP'
 enum PaymentMethod {
   CASH
   QRIS
   TRANSFER
+  DP        // <--- TAMBAHAN PENTING (Kalau tetap mau pakai Enum)
 }
 
 model User {
@@ -42,21 +45,26 @@ model Product {
   TransactionItem TransactionItem[]
 }
 
-// INI MODEL TRANSACTION YANG BENAR (Hanya boleh ada 1)
 model Transaction {
-  id            String            @id @default(cuid())
-  invoiceNo     String            @unique
+  id            String   @id @default(cuid())
+  invoiceNo     String   @unique
   totalAmount   Int
-  paymentMethod PaymentMethod
+  
+  // REVISI: Ubah jadi String agar bisa terima "DP", "GOPAY", dll tanpa error
+  // Jika ingin tetap Enum, pastikan Enum PaymentMethod di atas sudah ada "DP"
+  paymentMethod String   
+  
   cashReceived  Int?
   changeAmount  Int?
-  paymentProof  String?           // Kolom baru untuk bukti transfer
-  createdAt     DateTime          @default(now())
-  platform      String   @default("TOKO") // Opsi: TOKO, TIKTOK
-  customerName  String?  // Nama Customer (Opsional)
-  paymentStatus String   @default("PAID") // PAID (Lunas), UNPAID (Belum)
-  debtAmount    Int      @default(0)      // Sisa Hutang
+  paymentProof  String?  
+  createdAt     DateTime @default(now())
   
+  // Fitur Baru (SUDAH BENAR)
+  platform      String   @default("TOKO") 
+  customerName  String?  
+  paymentStatus String   @default("PAID") 
+  debtAmount    Int      @default(0)      
+   
   items         TransactionItem[]
 }
 
