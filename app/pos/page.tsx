@@ -151,7 +151,7 @@ export default function PosPage() {
                     <Box size={24}/>
                 </div>
                 <div>
-                    <h1 className="font-bold text-xl text-slate-800 leading-tight">KASIR TOKO</h1>
+                    <h1 className="font-bold text-xl text-slate-800 leading-tight">HIJAB MALAEKA MPP PANDEGLANG</h1>
                     <p className="text-xs text-slate-400">Kasir: {session?.user?.name || "Admin"}</p>
                 </div>
             </div>
@@ -312,21 +312,21 @@ export default function PosPage() {
                     </div>
                 )}
 
-                {/* --- JIKA QRIS --- */}
+               
+                {/* --- JIKA QRIS (Updated: Pakai Gambar Asli) --- */}
                 {paymentMethod === 'QRIS' && (
                     <div className="flex flex-col items-center text-center space-y-4">
                         <div className="bg-white p-4 rounded-lg shadow-sm border">
-                            {/* QR CODE GENERATOR */}
-                            <QRCode 
-                                value={`PAY-${totalAmount}-${Date.now()}`} 
-                                size={150} 
-                                style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                                viewBox={`0 0 256 256`}
+                            {/* TAMPILKAN GAMBAR DARI FOLDER PUBLIC */}
+                            <img 
+                                src="/qris.jpeg" 
+                                alt="Scan QRIS Maelika Butik" 
+                                className="w-48 h-auto object-contain" // Ukuran bisa diatur disini (w-48 = 192px)
                             />
                         </div>
                         <div className="text-xs text-slate-500">
                             <p className="font-bold">Scan QRIS</p>
-                            <p>Total: Rp {totalAmount.toLocaleString()}</p>
+                            <p>Total Bayar: <span className="text-indigo-600 font-bold">Rp {totalAmount.toLocaleString()}</span></p>
                         </div>
                         <button 
                             onClick={() => setIsQRPaid(!isQRPaid)}
@@ -342,8 +342,13 @@ export default function PosPage() {
                     <div className="space-y-4">
                         <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg">
                             <p className="text-xs text-blue-600 font-bold mb-1">Silakan Transfer ke:</p>
-                            <p className="font-mono font-bold text-slate-800 text-lg">BCA: 123-456-7890</p>
-                            <p className="text-xs text-slate-500">a.n Maelika Butik Official</p>
+                            <p className="font-mono font-bold text-slate-800 text-lg">BCA: 283-0286-911</p>
+                            <p className="text-xs text-slate-500">a.n Yuniarti</p>
+                        </div>
+                        <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg">
+                            <p className="text-xs text-blue-600 font-bold mb-1">Silakan Transfer ke:</p>
+                            <p className="font-mono font-bold text-slate-800 text-lg">BRI: 00620-113657-6507</p>
+                            <p className="text-xs text-slate-500">a.n Yuniarti</p>
                         </div>
 
                         <div>

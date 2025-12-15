@@ -83,6 +83,7 @@ model Expense {
   id          String   @id @default(cuid())
   name        String
   amount      Int
+  category    String   @default("Umum")
   description String?
   date        DateTime @default(now())
 }

@@ -254,8 +254,13 @@ export default function ProductsPage() {
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Stok Saat Ini</label>
                 <div className="relative">
                     <span className="absolute left-3 top-3 text-slate-400"><Archive size={18}/></span>
-                    <input required type="number" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
-                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    <input 
+                        required 
+                        type="number" 
+                        value={formData.stock} 
+                        onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
+                        className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                    />
                 </div>
               </div>
 
@@ -265,16 +270,26 @@ export default function ProductsPage() {
                   <label className="block text-xs font-bold text-slate-500 mb-1.5">Harga Modal</label>
                   <div className="relative">
                     <span className="absolute left-3 top-3 text-slate-400 text-xs font-bold">Rp</span>
-                    <input required type="number" value={formData.costPrice} onChange={(e) => setFormData({ ...formData, costPrice: Number(e.target.value) })}
-                    className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 font-mono text-sm" />
+                    <input 
+                        required 
+                        type="number" 
+                        value={formData.costPrice} 
+                        onChange={(e) => setFormData({ ...formData, costPrice: Number(e.target.value) })}
+                        className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-indigo-500 font-mono text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                    />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-1.5">Harga Jual</label>
                   <div className="relative">
                     <span className="absolute left-3 top-3 text-emerald-600 text-xs font-bold">Rp</span>
-                    <input required type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                    className="w-full pl-9 pr-3 py-2 border border-emerald-300 ring-1 ring-emerald-100 rounded-lg text-slate-900 focus:ring-2 focus:ring-emerald-500 font-mono font-bold text-sm" />
+                    <input 
+                        required 
+                        type="number" 
+                        value={formData.price} 
+                        onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                        className="w-full pl-9 pr-3 py-2 border border-emerald-300 ring-1 ring-emerald-100 rounded-lg text-slate-900 focus:ring-2 focus:ring-emerald-500 font-mono font-bold text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                    />
                   </div>
                 </div>
               </div>
