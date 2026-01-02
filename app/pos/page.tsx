@@ -1,8 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { Trash, Search, LogOut, Upload, CheckCircle, CreditCard, Banknote, QrCode, Clock, User, Box } from "lucide-react";
+import { Trash, Search, LogOut, CheckCircle, CreditCard, Banknote, QrCode, Clock, User, Box } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
-import QRCode from "react-qr-code";
 
 // [FIX 1] WAJIB ADA: Mencegah error "Prerender Error" saat deploy Vercel
 export const dynamic = "force-dynamic";
@@ -25,8 +24,8 @@ export default function PosPage() {
   const [platform, setPlatform] = useState("TOKO");
 
   // STATE TAMBAHAN
-  const [transferFile, setTransferFile] = useState<File | null>(null);
   const [isQRPaid, setIsQRPaid] = useState(false);
+  // [DIHAPUS] State transferFile sudah tidak dipakai
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -83,7 +82,9 @@ export default function PosPage() {
   // --- LOGIC CHECKOUT ---
   const handleCheckout = async () => {
     if (cart.length === 0) return alert("Keranjang kosong!");
-    if (paymentMethod === "TRANSFER" && !transferFile) return alert("Wajib upload bukti transfer!");
+    
+    // [DIHAPUS] Validasi upload transfer sudah dihapus
+    
     if (paymentMethod === "QRIS" && !isQRPaid) return alert("Konfirmasi pembayaran QRIS dulu!");
 
     // Validasi DP
@@ -91,19 +92,12 @@ export default function PosPage() {
 
     if (!confirm("Proses transaksi ini?")) return;
 
-    let proofUrl = null;
-    if (paymentMethod === "TRANSFER" && transferFile) {
-        // Simulasi Upload (Idealnya upload ke Cloudinary/S3)
-        // Disini kita anggap string dummy dulu kalau belum ada API upload image
-        proofUrl = "bukti_transfer_dummy.jpg"; 
-    }
-
     const payload = {
         items: cart,
         totalAmount,
-        paymentMethod, // String: "CASH", "QRIS", "DP", "TRANSFER"
+        paymentMethod, 
         cashReceived: bayar,
-        paymentProof: proofUrl,
+        paymentProof: null, // Tidak ada bukti upload (Manual via HP Kasir)
         customerName: customerName || "Guest",
         platform: platform
     };
@@ -123,7 +117,6 @@ export default function PosPage() {
             setCashReceived("");
             setCustomerName("");
             setPlatform("TOKO");
-            setTransferFile(null);
             setIsQRPaid(false);
             setPaymentMethod("CASH");
             
@@ -313,15 +306,14 @@ export default function PosPage() {
                 )}
 
                
-                {/* --- JIKA QRIS (Updated: Pakai Gambar Asli) --- */}
+                {/* --- JIKA QRIS --- */}
                 {paymentMethod === 'QRIS' && (
                     <div className="flex flex-col items-center text-center space-y-4">
                         <div className="bg-white p-4 rounded-lg shadow-sm border">
-                            {/* TAMPILKAN GAMBAR DARI FOLDER PUBLIC */}
                             <img 
                                 src="/qris.jpeg" 
                                 alt="Scan QRIS Maelika Butik" 
-                                className="w-48 h-auto object-contain" // Ukuran bisa diatur disini (w-48 = 192px)
+                                className="w-48 h-auto object-contain" 
                             />
                         </div>
                         <div className="text-xs text-slate-500">
@@ -337,7 +329,7 @@ export default function PosPage() {
                     </div>
                 )}
 
-                {/* --- JIKA TRANSFER --- */}
+                {/* --- JIKA TRANSFER (TAMPILAN REK SAJA, UPLOAD DIHAPUS) --- */}
                 {paymentMethod === 'TRANSFER' && (
                     <div className="space-y-4">
                         <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg">
@@ -350,7 +342,11 @@ export default function PosPage() {
                             <p className="font-mono font-bold text-slate-800 text-lg">BRI: 00620-113657-6507</p>
                             <p className="text-xs text-slate-500">a.n Yuniarti</p>
                         </div>
-
+                        
+                        {/* Info untuk Kasir */}
+                        <div className="text-center p-2 text-xs text-slate-400 bg-white border border-slate-100 rounded-lg">
+                           *Kasir harap foto bukti transfer manual
+                        </div>
                     </div>
                 )}
 
