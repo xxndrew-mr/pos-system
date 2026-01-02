@@ -351,28 +351,6 @@ export default function PosPage() {
                             <p className="text-xs text-slate-500">a.n Yuniarti</p>
                         </div>
 
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 mb-2">Upload Bukti Transfer</label>
-                            <div className="relative border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:bg-slate-50 transition cursor-pointer bg-white">
-                                <input 
-                                    type="file" 
-                                    accept="image/*"
-                                    onChange={(e) => setTransferFile(e.target.files?.[0] || null)}
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                />
-                                {transferFile ? (
-                                    <div className="text-emerald-600 font-bold text-sm flex flex-col items-center">
-                                        <CheckCircle size={24} className="mb-1"/>
-                                        <span className="truncate w-full px-4">{transferFile.name}</span>
-                                    </div>
-                                ) : (
-                                    <div className="text-slate-400 text-sm flex flex-col items-center">
-                                        <Upload size={24} className="mb-1"/>
-                                        <span>Klik untuk Upload</span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
                     </div>
                 )}
 
