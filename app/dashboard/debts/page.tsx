@@ -1,12 +1,17 @@
 "use client";
 import { useState, useEffect } from "react";
-import { CheckCircle, AlertCircle, Search, Wallet, ArrowRight, FileText, XCircle } from "lucide-react";
+import { CheckCircle, AlertCircle, Search, Wallet, ArrowRight, FileText, XCircle, X, Banknote } from "lucide-react";
 
 export default function DebtPage() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [processingId, setProcessingId] = useState<string | null>(null);
+  
+  // STATE UNTUK MODAL BAYAR
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDebt, setSelectedDebt] = useState<any>(null);
+  const [repayAmount, setRepayAmount] = useState<string>("");
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     fetchDebts();
@@ -14,11 +19,11 @@ export default function DebtPage() {
 
   const fetchDebts = async () => {
     try {
-      // Mengambil data range luas untuk memastikan semua hutang ter-cover
+      // Mengambil data range luas
       const res = await fetch(`/api/reports?start=2024-01-01&end=2030-12-31`); 
       const data = await res.json();
       
-      // Filter: Hanya status PARTIAL atau yang punya sisa hutang > 0
+      // Filter: Hanya yang punya sisa hutang > 0
       const debts = data.transactions.filter((t: any) => 
         (t.paymentStatus === 'PARTIAL' || t.debtAmount > 0) && t.paymentStatus !== 'PAID'
       );
@@ -31,23 +36,63 @@ export default function DebtPage() {
     }
   };
 
-  const handleRepay = async (id: string, name: string) => {
-    if(!confirm(`Yakin ingin melunasi hutang customer: ${name}?`)) return;
+  // 1. BUKA MODAL SAAT TOMBOL DIKLIK
+  const openRepayModal = (transaction: any) => {
+    setSelectedDebt(transaction);
+    setRepayAmount(""); // Reset input
+    setIsModalOpen(true);
+  };
+
+  // 2. PROSES PEMBAYARAN KE SERVER
+  const handleSubmitRepay = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedDebt) return;
+
+    const amount = Number(repayAmount);
     
-    setProcessingId(id); // Set loading hanya untuk baris ini
+    // Validasi sederhana
+    if (amount <= 0) return alert("Masukkan nominal pembayaran!");
+    if (amount > selectedDebt.debtAmount) return alert("Nominal pembayaran melebihi sisa hutang!");
+
+    if (!confirm(`Proses pembayaran sebesar Rp ${amount.toLocaleString()}?`)) return;
+
+    setProcessing(true);
     try {
-        const res = await fetch(`/api/transactions/${id}/repay`, { method: "POST" });
-        if(res.ok) {
-            // Optimistic UI Update: Langsung hapus dari list tanpa fetch ulang biar cepat
-            setTransactions(prev => prev.filter(t => t.id !== id));
-            alert("Berhasil! Hutang dianggap LUNAS.");
+        // PERHATIAN: Pastikan API Backend kamu support body { amount: number }
+        const res = await fetch(`/api/transactions/${selectedDebt.id}/repay`, { 
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ amount: amount }) // Kirim nominal bayar
+        });
+
+        if (res.ok) {
+            // --- OPTIMISTIC UPDATE UI (Agar tidak perlu reload) ---
+            setTransactions(prev => {
+                return prev.map(t => {
+                    if (t.id === selectedDebt.id) {
+                        const newDebt = t.debtAmount - amount;
+                        const newCash = t.cashReceived + amount;
+                        
+                        // Jika hutang jadi 0, hapus dari list (tandai null nanti difilter)
+                        if (newDebt <= 0) return null;
+
+                        // Jika masih ada sisa, update angkanya
+                        return { ...t, debtAmount: newDebt, cashReceived: newCash };
+                    }
+                    return t;
+                }).filter(Boolean); // Hapus yang null (yang sudah lunas)
+            });
+
+            alert("Pembayaran berhasil dicatat!");
+            setIsModalOpen(false);
         } else {
-            alert("Gagal update data server.");
+            const err = await res.json();
+            alert("Gagal: " + (err.message || "Server error"));
         }
     } catch (err) {
         alert("Terjadi kesalahan koneksi.");
     } finally {
-        setProcessingId(null);
+        setProcessing(false);
     }
   };
 
@@ -60,7 +105,7 @@ export default function DebtPage() {
   const totalPiutang = transactions.reduce((acc, t)=> acc + t.debtAmount, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
       
       {/* --- HEADER SECTION --- */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -123,7 +168,7 @@ export default function DebtPage() {
                                     {searchTerm ? (
                                         <>
                                             <XCircle size={48} className="opacity-20"/>
-                                            <p>Tidak ditemukan customer dengan nama "{searchTerm}"</p>
+                                            <p>Tidak ditemukan data pencarian.</p>
                                         </>
                                     ) : (
                                         <>
@@ -158,21 +203,10 @@ export default function DebtPage() {
                                 </td>
                                 <td className="p-4 text-center">
                                     <button 
-                                        onClick={() => handleRepay(t.id, t.customerName)}
-                                        disabled={!!processingId}
-                                        className={`
-                                            px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 mx-auto transition-all shadow-sm
-                                            ${processingId === t.id 
-                                                ? 'bg-slate-100 text-slate-400 cursor-wait' 
-                                                : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-200 active:scale-95'
-                                            }
-                                        `}
+                                        onClick={() => openRepayModal(t)}
+                                        className="bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-200 active:scale-95 px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 mx-auto transition-all shadow-sm"
                                     >
-                                        {processingId === t.id ? (
-                                            "Proses..."
-                                        ) : (
-                                            <>Lunasi <ArrowRight size={14}/></>
-                                        )}
+                                        Bayar <ArrowRight size={14}/>
                                     </button>
                                 </td>
                             </tr>
@@ -182,6 +216,80 @@ export default function DebtPage() {
             </table>
         </div>
       </div>
+
+      {/* ================= MODAL PEMBAYARAN CICILAN ================= */}
+      {isModalOpen && selectedDebt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                
+                {/* Header Modal */}
+                <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                    <div>
+                        <h3 className="font-bold text-lg text-slate-800">Pembayaran Piutang</h3>
+                        <p className="text-xs text-slate-500">{selectedDebt.invoiceNo} - {selectedDebt.customerName}</p>
+                    </div>
+                    <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-rose-500 transition">
+                        <X size={24} />
+                    </button>
+                </div>
+
+                {/* Body Modal */}
+                <form onSubmit={handleSubmitRepay} className="p-6 space-y-5">
+                    
+                    {/* Info Sisa Hutang */}
+                    <div className="bg-rose-50 p-4 rounded-xl border border-rose-100 text-center">
+                        <p className="text-xs font-bold text-rose-500 uppercase">Sisa Hutang Saat Ini</p>
+                        <p className="text-3xl font-black text-rose-600 mt-1">
+                            Rp {selectedDebt.debtAmount.toLocaleString()}
+                        </p>
+                    </div>
+
+                    {/* Input Nominal */}
+                    <div>
+                        <label className="block text-sm font-bold text-slate-600 mb-2">Masukan Nominal Bayar</label>
+                        <div className="relative">
+                            <Banknote className="absolute left-3 top-3.5 text-slate-400" size={20}/>
+                            <input 
+                                type="number" 
+                                autoFocus
+                                required
+                                min={1}
+                                max={selectedDebt.debtAmount}
+                                value={repayAmount}
+                                onChange={(e) => setRepayAmount(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg text-slate-800"
+                                placeholder="Contoh: 500000"
+                            />
+                        </div>
+                        {repayAmount && (
+                             <p className="text-xs text-slate-500 mt-2 text-right">
+                                Sisa Hutang Setelah Bayar: <span className="font-bold text-indigo-600">Rp {(selectedDebt.debtAmount - Number(repayAmount)).toLocaleString()}</span>
+                             </p>
+                        )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-3 pt-2">
+                        <button 
+                            type="button" 
+                            onClick={() => setIsModalOpen(false)}
+                            className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition"
+                        >
+                            Batal
+                        </button>
+                        <button 
+                            type="submit" 
+                            disabled={processing}
+                            className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition active:scale-95 disabled:opacity-50"
+                        >
+                            {processing ? "Memproses..." : "Simpan Pembayaran"}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+      )}
+
     </div>
   );
 }
