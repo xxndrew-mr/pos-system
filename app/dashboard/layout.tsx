@@ -26,7 +26,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className="p-2 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-200">
                     <LayoutDashboard size={22} />
                 </div>
-                Admin Panel
+                Admin Butik HIjab Malaeka
             </div>
         </div>
 
