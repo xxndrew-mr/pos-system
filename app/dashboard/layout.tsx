@@ -78,7 +78,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className="p-2 bg-indigo-600 text-white rounded-lg">
                     <LayoutDashboard size={20} />
                 </div>
-                <span className="font-bold text-slate-800">Admin Panel</span>
+                <span className="font-bold text-slate-800">Admin Butik HIjab Malaeka</span>
            </div>
 
            {/* Breadcrumb / Page Title Placeholder (Left side of Navbar) */}

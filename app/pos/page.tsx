@@ -144,7 +144,7 @@ export default function PosPage() {
                     <Box size={24}/>
                 </div>
                 <div>
-                    <h1 className="font-bold text-xl text-slate-800 leading-tight">HIJAB MALAEKA MPP PANDEGLANG</h1>
+                    <h1 className="font-bold text-xl text-slate-800 leading-tight">Butik  HIjab Malaeka</h1>
                     <p className="text-xs text-slate-400">Kasir: {session?.user?.name || "Admin"}</p>
                 </div>
             </div>
