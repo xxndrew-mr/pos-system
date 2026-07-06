@@ -33,7 +33,7 @@ export default function PrintPage() {
       
       {/* HEADER */}
       <div className="text-center mb-4 border-b border-black border-dashed pb-2">
-        <h2 className="text-xl font-bold uppercase">Butik  HIjab Malaeka</h2>
+        <h2 className="text-xl font-bold uppercase">Malaeka Butik Hijab</h2>
         <p className="text-xs">Kp. Daya Mekar RT.02 RW.09 Desa. Karanganyar Kec. Labuan, Pandeglang</p>
       </div>
 

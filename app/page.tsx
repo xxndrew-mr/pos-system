@@ -246,14 +246,14 @@ export default function LoginPage() {
             <path d="M14 4 Q18 8 22 6 Q20 12 16 14 Q20 16 22 22 Q18 20 14 24 Q10 20 6 22 Q8 16 12 14 Q8 12 6 6 Q10 8 14 4Z" fill="#e8a84a" />
             <circle cx="14" cy="14" r="3" fill="#d4873a" />
           </svg>
-          <span>Kasir Maelika Butik</span>
+          <span>Kasir Malaeka Butik</span>
         </div>
 
         {/* Blob Card */}
         <div className="bs-card">
           <div className="bs-title">
             <div className="bs-title-sub">Hello there,</div>
-            <div className="bs-title-main">Kasir Maelika Butik</div>
+            <div className="bs-title-main">Kasir Malaeka Butik</div>
           </div>
 
           <form onSubmit={handleSubmit} style={{ width: "100%", display: "flex", flexDirection: "column" }}>

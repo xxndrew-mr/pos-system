@@ -43,7 +43,7 @@ export default function PrintLabelPage() {
 
           {/* BRAND */}
           <h2 className="text-[9px] font-bold uppercase leading-none">
-            HIJAB MALAEKA MPP PANDEGLANG
+            MALAEKA BUTIK HIJAB
           </h2>
 
           {/* NAMA PRODUK */}

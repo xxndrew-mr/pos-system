@@ -39,7 +39,7 @@ export default function DashboardLayout({
           <div className="p-2 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-200">
             <LayoutDashboard size={22} />
           </div>
-          <span className="leading-tight">Admin Butik Hijab Malaeka</span>
+          <span className="leading-tight">Admin Malaeka Butik Hijab</span>
         </div>
       </div>
 
@@ -138,7 +138,7 @@ export default function DashboardLayout({
             </button>
 
             <span className="font-bold text-slate-800 truncate">
-              Admin Butik Hijab Malaeka
+              Admin Malaeka Butik Hijab
             </span>
           </div>
 
