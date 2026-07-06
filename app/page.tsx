@@ -274,7 +274,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Password */}
+            {/* Passwordd */}
             <div className="bs-field">
               <label className="bs-label">Password</label>
               <div className="bs-input-wrap">
